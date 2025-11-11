@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV Builder</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Font Inter & Noto Sans for Indian Languages -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Gujarati:wght@400;600&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Fonts for specific languages */
+        body.lang-gu { font-family: 'Noto Sans Gujarati', sans-serif; }
+        body.lang-hi { font-family: 'Noto Sans Devanagari', sans-serif; }
+
+        /* Print Styles */
+        @media print {
+            @page { margin: 0; size: auto; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            nav, .no-print, #editor-panel { display: none !important; }
+            #preview-container { 
+                background: white !important; 
+                padding: 0 !important; 
+                width: 100% !important;
+                height: auto !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+            }
+            #cv-paper {
+                transform: none !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col h-screen overflow-hidden lang-en">
+
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 px-4 md:px-6 py-3 flex flex-wrap justify-between items-center shadow-sm z-50 gap-2">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                <i data-lucide="file-text"></i>
+            </div>
+            <h1 class="font-bold text-xl text-gray-800 hidden md:block" data-i18n="appTitle">CV Builder</h1>
+        </div>
+        
+        <div class="flex items-center gap-2 md:gap-3">
+            
+            <!-- Language Selector -->
+            <select id="langSelector" class="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2">
+                <option value="en">English</option>
+                <option value="gu">ગુજરાતી</option>
+                <option value="hi">हिन्दी</option>
+            </select>
+
+            <div class="w-px h-6 bg-gray-200 mx-1"></div>
+
+            <!-- Color Picker -->
+            <div class="flex items-center gap-2 bg-gray-50 rounded-full px-3 py-1.5 border border-gray-200" title="Accent Color">
+                <i data-lucide="palette" class="text-gray-500 w-4 h-4"></i>
+                <input type="color" id="colorPicker" value="#4f46e5" class="w-6 h-6 rounded-full overflow-hidden border-none cursor-pointer bg-transparent">
+            </div>
+
+            <!-- Preview Toggle -->
+            <button id="btnPreview" class="flex items-center gap-2 px-3 py-2 rounded-lg font-medium hover:bg-gray-100 text-gray-600 transition-all">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+                <span class="hidden lg:inline" data-i18n="preview">Preview</span>
+            </button>
+
+            <!-- Save Button -->
+            <button id="btnSave" class="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all">
+                <i data-lucide="save" class="w-4 h-4"></i>
+                <span class="hidden sm:inline" id="saveText" data-i18n="save">Save</span>
+            </button>
+
+            <!-- Download PDF -->
+            <button onclick="window.print()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-full font-medium shadow-md transition-all active:scale-95">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span class="hidden sm:inline" data-i18n="export">Export PDF</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden w-full max-w-[100vw] mx-auto relative">
+        
+        <!-- Left Panel: Editor -->
+        <div id="editor-panel" class="w-full lg:w-[500px] bg-white h-full overflow-y-auto p-6 border-r border-gray-200 shadow-lg z-10 transition-all duration-300">
+            <div class="flex justify-between items-end mb-6">
+                <h2 class="text-lg font-bold text-gray-800" data-i18n="editorTitle">Editor</h2>
+                <span id="lastSaved" class="text-xs text-gray-400"></span>
+            </div>
+
+            <!-- Personal Info Form -->
+            <div class="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white shadow-sm">
+                <button class="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors" onclick="toggleAccordion('personal-content')">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><i data-lucide="user" class="w-4 h-4"></i></div>
+                        <span class="font-semibold text-gray-700" data-i18n="personalInfo">Personal Information</span>
+                    </div>
+                </button>
+                <div id="personal-content" class="p-4 border-t border-gray-100 space-y-4">
+                    <input type="text" id="input-fullName" data-ph="phName" placeholder="Full Name" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm" oninput="updateData('personal', 'fullName', this.value)">
+                    <input type="text" id="input-jobTitle" data-ph="phJob" placeholder="Job Title" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm" oninput="updateData('personal', 'jobTitle', this.value)">
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="email" id="input-email" data-ph="phEmail" placeholder="Email" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm" oninput="updateData('personal', 'email', this.value)">
+                        <input type="text" id="input-phone" data-ph="phPhone" placeholder="Phone" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm" oninput="updateData('personal', 'phone', this.value)">
+                    </div>
+                    <input type="text" id="input-location" data-ph="phLocation" placeholder="Location" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm" oninput="updateData('personal', 'location', this.value)">
+                    <input type="text" id="input-website" data-ph="phWebsite" placeholder="Website" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm" oninput="updateData('personal', 'website', this.value)">
+                    <textarea id="input-summary" data-ph="phSummary" placeholder="Professional Summary" class="w-full p-2.5 bg-gray-50 border rounded-lg text-sm min-h-[100px]" oninput="updateData('personal', 'summary', this.value)"></textarea>
+                </div>
+            </div>
+
+            <!-- Experience Form -->
+            <div class="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white shadow-sm">
+                <button class="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors" onclick="toggleAccordion('experience-content')">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><i data-lucide="briefcase" class="w-4 h-4"></i></div>
+                        <span class="font-semibold text-gray-700" data-i18n="experience">Experience</span>
+                    </div>
+                </button>
+                <div id="experience-content" class="p-4 border-t border-gray-100 space-y-4 hidden">
+                    <div id="experience-list" class="space-y-4"></div>
+                    <button onclick="addExperience()" class="w-full py-3 flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 font-medium hover:border-indigo-500 hover:text-indigo-600 transition-all">
+                        <i data-lucide="plus" class="w-4 h-4"></i> <span data-i18n="addExperience">Add Experience</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Education Form -->
+            <div class="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white shadow-sm">
+                <button class="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors" onclick="toggleAccordion('education-content')">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><i data-lucide="graduation-cap" class="w-4 h-4"></i></div>
+                        <span class="font-semibold text-gray-700" data-i18n="education">Education</span>
+                    </div>
+                </button>
+                <div id="education-content" class="p-4 border-t border-gray-100 space-y-4 hidden">
+                    <div id="education-list" class="space-y-4"></div>
+                    <button onclick="addEducation()" class="w-full py-3 flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 font-medium hover:border-indigo-500 hover:text-indigo-600 transition-all">
+                        <i data-lucide="plus" class="w-4 h-4"></i> <span data-i18n="addEducation">Add Education</span>
+                    </button>
+                </div>
+            </div>
+
+             <!-- Skills Form -->
+             <div class="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white shadow-sm">
+                <button class="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors" onclick="toggleAccordion('skills-content')">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><i data-lucide="layout-template" class="w-4 h-4"></i></div>
+                        <span class="font-semibold text-gray-700" data-i18n="skills">Skills</span>
+                    </div>
+                </button>
+                <div id="skills-content" class="p-4 border-t border-gray-100 hidden">
+                    <div id="skills-list" class="flex flex-wrap gap-2 mb-4"></div>
+                    <button onclick="addSkill()" class="px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors flex items-center gap-1">
+                        <i data-lucide="plus" class="w-4 h-4"></i> <span data-i18n="addSkill">Add Skill</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Panel: Preview -->
+        <div id="preview-container" class="flex-1 bg-gray-100 p-8 overflow-y-auto flex justify-center transition-colors duration-300">
+            
+            <!-- A4 Paper -->
+            <div id="cv-paper" class="bg-white w-[210mm] min-h-[297mm] shadow-2xl mx-auto relative flex flex-col scale-[0.95] origin-top transition-transform duration-300">
+                
+                <!-- Header -->
+                <div class="p-12 pb-0">
+                    <h1 id="view-fullName" class="text-5xl font-bold text-gray-900 tracking-tight mb-2"></h1>
+                    <h2 id="view-jobTitle" class="text-xl font-medium text-gray-600 mb-4"></h2>
+
+                    <!-- Contact Bar -->
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600 mt-4 mb-8 border-y border-gray-100 py-5" id="view-contact">
+                        <!-- Injected via JS -->
+                    </div>
+
+                    <!-- Summary -->
+                    <div class="mb-10">
+                        <p id="view-summary" class="text-gray-700 leading-relaxed text-sm text-justify"></p>
+                    </div>
+                </div>
+
+                <div class="flex flex-row flex-1">
+                    <!-- Main Column -->
+                    <div class="w-2/3 p-12 pt-0 pr-8">
+                        <!-- Experience -->
+                        <div id="view-experience-section" class="mb-10 hidden">
+                            <h3 class="section-title text-sm font-bold uppercase tracking-widest border-b-2 mb-6 pb-2 flex items-center gap-2" data-i18n="experience">Experience</h3>
+                            <div id="view-experience-list" class="space-y-8"></div>
+                        </div>
+
+                        <!-- Education -->
+                        <div id="view-education-section" class="mb-10 hidden">
+                            <h3 class="section-title text-sm font-bold uppercase tracking-widest border-b-2 mb-6 pb-2 flex items-center gap-2" data-i18n="education">Education</h3>
+                            <div id="view-education-list" class="space-y-6"></div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar -->
+                    <div class="w-1/3 bg-gray-50 p-8 pt-10 min-h-full border-l border-gray-100">
+                        <div id="view-skills-section" class="hidden">
+                            <h3 class="section-title text-sm font-bold uppercase tracking-widest border-b-2 border-gray-200 mb-6 pb-2 text-gray-800" data-i18n="skills">Skills</h3>
+                            <div id="view-skills-list" class="flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firebase & Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Initialize Firebase
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = __app_id;
+
+        let currentUser = null;
+        let isSaving = false;
+
+        // Auth Logic
+        async function initAuth() {
+            if (typeof __initial_auth_token !== 'undefined') {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        }
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                listenToData();
+            }
+        });
+
+        function listenToData() {
+            if (!currentUser) return;
+            const docRef = doc(db, "artifacts", appId, "users", currentUser.uid, "cv_data", "current");
+            onSnapshot(docRef, (snap) => {
+                if (snap.exists()) {
+                    const remote = snap.data();
+                    if (remote.data) {
+                        cvData = remote.data;
+                        renderEditor();
+                        renderPreview();
+                    }
+                    if (remote.color) {
+                        updateColor(remote.color);
+                    }
+                }
+            });
+        }
+
+        window.saveData = async () => {
+            if (!currentUser || isSaving) return;
+            isSaving = true;
+            const btnText = document.getElementById('saveText');
+            const originalText = btnText.innerText;
+            btnText.innerText = currentLang === 'en' ? "Saving..." : (currentLang === 'gu' ? "સેવ થાય છે..." : "सहेज रहा है...");
+            
+            try {
+                const docRef = doc(db, "artifacts", appId, "users", currentUser.uid, "cv_data", "current");
+                await setDoc(docRef, {
+                    data: cvData,
+                    color: document.getElementById('colorPicker').value,
+                    updatedAt: new Date().toISOString()
+                });
+                const now = new Date();
+                document.getElementById('lastSaved').innerText = `Saved: ${now.toLocaleTimeString()}`;
+            } catch (e) {
+                console.error("Error saving", e);
+            } finally {
+                isSaving = false;
+                updateTranslations(); // Restore text
+            }
+        }
+
+        document.getElementById('btnSave').addEventListener('click', window.saveData);
+    </script>
+
+    <script>
+        // --- Translations ---
+        const translations = {
+            en: {
+                appTitle: "CV Builder",
+                preview: "Preview",
+                exitPreview: "Exit Preview",
+                save: "Save",
+                export: "Export PDF",
+                editorTitle: "Editor",
+                personalInfo: "Personal Information",
+                experience: "Experience",
+                education: "Education",
+                skills: "Skills",
+                addExperience: "Add Experience",
+                addEducation: "Add Education",
+                addSkill: "Add Skill",
+                // Placeholders
+                phName: "Full Name",
+                phJob: "Job Title",
+                phEmail: "Email",
+                phPhone: "Phone",
+                phLocation: "Location",
+                phWebsite: "Website",
+                phSummary: "Professional Summary",
+                phCompany: "Company",
+                phDegree: "Degree",
+                phSchool: "School / University",
+                phDesc: "Description",
+                phSkill: "Skill name"
+            },
+            gu: {
+                appTitle: "સીવી બિલ્ડર",
+                preview: "પ્રીવ્યુ",
+                exitPreview: "પ્રીવ્યુ બંધ કરો",
+                save: "સેવ",
+                export: "PDF ડાઉનલોડ",
+                editorTitle: "એડિટર",
+                personalInfo: "વ્યક્તિગત માહિતી",
+                experience: "અનુભવ",
+                education: "શિક્ષણ",
+                skills: "કૌશલ્યો",
+                addExperience: "અનુભવ ઉમેરો",
+                addEducation: "શિક્ષણ ઉમેરો",
+                addSkill: "કૌશલ્ય ઉમેરો",
+                // Placeholders
+                phName: "પૂરું નામ",
+                phJob: "હોદ્દો (Job Title)",
+                phEmail: "ઈમેલ",
+                phPhone: "ફોન નંબર",
+                phLocation: "સરનામું",
+                phWebsite: "વેબસાઈટ",
+                phSummary: "તમારા વિશે ટૂંકમાં (Summary)",
+                phCompany: "કંપનીનું નામ",
+                phDegree: "ડિગ્રી",
+                phSchool: "શાળા / કોલેજ",
+                phDesc: "વિવરણ",
+                phSkill: "કૌશલ્યનું નામ"
+            },
+            hi: {
+                appTitle: "रिज्यूमे बिल्डर",
+                preview: "पूर्वावलोकन",
+                exitPreview: "पूर्वावलोकन बंद",
+                save: "सहेजें",
+                export: "PDF डाउनलोड",
+                editorTitle: "संपादक",
+                personalInfo: "व्यक्तिगत जानकारी",
+                experience: "अनुभव",
+                education: "शिक्षा",
+                skills: "कौशल",
+                addExperience: "अनुभव जोड़ें",
+                addEducation: "शिक्षा जोड़ें",
+                addSkill: "कौशल जोड़ें",
+                // Placeholders
+                phName: "पूरा नाम",
+                phJob: "नौकरी का शीर्षक",
+                phEmail: "ईमेल",
+                phPhone: "फ़ोन",
+                phLocation: "स्थान",
+                phWebsite: "वेबसाइट",
+                phSummary: "पेशेवर सारांश",
+                phCompany: "कंपनी",
+                phDegree: "डिग्री",
+                phSchool: "स्कूल / विश्वविद्यालय",
+                phDesc: "विवरण",
+                phSkill: "कौशल का नाम"
+            }
+        };
+
+        let currentLang = 'en';
+
+        // --- Application State ---
+        let cvData = {
+            personal: {
+                fullName: "Rahul Sharma",
+                jobTitle: "Senior Product Designer",
+                email: "rahul.sharma@example.com",
+                phone: "+91 98765 43210",
+                location: "Ahmedabad, Gujarat",
+                website: "www.rahuldesign.com",
+                summary: "Creative and detail-oriented Product Designer with over 6 years of experience in building user-centric digital products."
+            },
+            experience: [
+                { id: 1, company: "TechIndia Pvt Ltd", title: "Senior UI Designer", startDate: "2021-03", endDate: "", location: "Ahmedabad", description: "Leading design team for core fintech products." }
+            ],
+            education: [
+                 { id: 1, school: "Gujarat University", degree: "B.Des in Visual Comm.", startDate: "2014-08", endDate: "2018-05", location: "Ahmedabad", description: "Graduated with Distinction." }
+            ],
+            skills: ["Figma", "HTML/CSS", "Adobe XD", "Hindi Typing"]
+        };
+
+        // --- DOM Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderEditor();
+            renderPreview();
+            updateTranslations();
+            
+            // Color Picker Event
+            const colorPicker = document.getElementById('colorPicker');
+            colorPicker.addEventListener('input', (e) => updateColor(e.target.value));
+            updateColor(colorPicker.value);
+
+            // Language Selector Event
+            document.getElementById('langSelector').addEventListener('change', (e) => {
+                currentLang = e.target.value;
+                document.body.className = `bg-gray-100 text-gray-800 flex flex-col h-screen overflow-hidden lang-${currentLang}`;
+                updateTranslations();
+                renderEditor(); // Re-render editor to update placeholders in dynamic lists
+                renderPreview(); // Re-render preview to update section headers
+            });
+
+            // Preview Toggle
+            let isPreview = false;
+            document.getElementById('btnPreview').addEventListener('click', () => {
+                isPreview = !isPreview;
+                const editor = document.getElementById('editor-panel');
+                const container = document.getElementById('preview-container');
+                const paper = document.getElementById('cv-paper');
+                const btnText = document.querySelector('#btnPreview span');
+                
+                if (isPreview) {
+                    editor.style.marginLeft = "-500px";
+                    editor.classList.add('hidden');
+                    editor.classList.remove('lg:block');
+                    container.classList.replace('bg-gray-100', 'bg-gray-800');
+                    container.classList.add('p-12');
+                    paper.classList.replace('scale-[0.95]', 'scale-100');
+                    btnText.innerText = translations[currentLang].exitPreview;
+                } else {
+                    editor.style.marginLeft = "0";
+                    editor.classList.remove('hidden');
+                    editor.classList.add('lg:block');
+                    container.classList.replace('bg-gray-800', 'bg-gray-100');
+                    container.classList.remove('p-12');
+                    paper.classList.replace('scale-100', 'scale-[0.95]');
+                    btnText.innerText = translations[currentLang].preview;
+                }
+            });
+        });
+
+        function updateTranslations() {
+            const t = translations[currentLang];
+            
+            // Update static elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) el.innerText = t[key];
+            });
+
+            // Update static placeholders
+            document.querySelectorAll('[data-ph]').forEach(el => {
+                const key = el.getAttribute('data-ph');
+                if (t[key]) el.placeholder = t[key];
+            });
+        }
+
+        // --- Helper Functions ---
+        function updateColor(color) {
+            document.getElementById('colorPicker').value = color;
+            const nameEl = document.getElementById('view-fullName');
+            if(nameEl) nameEl.style.color = color;
+            
+            const icons = document.querySelectorAll('#view-contact svg');
+            icons.forEach(icon => icon.style.color = color);
+            
+            const sectionTitles = document.querySelectorAll('.section-title');
+            sectionTitles.forEach(title => {
+                title.style.borderColor = color;
+                title.style.color = color;
+            });
+
+            const companies = document.querySelectorAll('.company-name');
+            companies.forEach(c => c.style.color = color);
+            
+            const degrees = document.querySelectorAll('.degree-name');
+            degrees.forEach(d => d.style.color = color);
+        }
+
+        function toggleAccordion(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('hidden');
+        }
+
+        // --- Data Updates ---
+        window.updateData = (section, field, value) => {
+            cvData[section][field] = value;
+            renderPreview();
+        };
+
+        window.updateArrayItem = (arrayName, id, field, value) => {
+            const item = cvData[arrayName].find(i => i.id === id);
+            if (item) {
+                item[field] = value;
+                renderPreview();
+            }
+        };
+
+        window.updateSkill = (index, value) => {
+            cvData.skills[index] = value;
+            renderPreview();
+        };
+
+        // --- CRUD Operations ---
+        window.addExperience = () => {
+            cvData.experience.unshift({
+                id: Date.now(), company: "", title: "", startDate: "", endDate: "", location: "", description: ""
+            });
+            renderEditor();
+            renderPreview();
+        };
+
+        window.deleteExperience = (id) => {
+            cvData.experience = cvData.experience.filter(i => i.id !== id);
+            renderEditor();
+            renderPreview();
+        };
+
+        window.addEducation = () => {
+            cvData.education.unshift({
+                id: Date.now(), school: "", degree: "", startDate: "", endDate: "", location: "", description: ""
+            });
+            renderEditor();
+            renderPreview();
+        };
+
+        window.deleteEducation = (id) => {
+            cvData.education = cvData.education.filter(i => i.id !== id);
+            renderEditor();
+            renderPreview();
+        };
+
+        window.addSkill = () => {
+            cvData.skills.push("");
+            renderEditor();
+            renderPreview();
+        };
+
+        window.deleteSkill = (index) => {
+            cvData.skills.splice(index, 1);
+            renderEditor();
+            renderPreview();
+        };
+
+        // --- Rendering Logic ---
+        
+        function renderEditor() {
+            const t = translations[currentLang];
+
+            // Personal Inputs
+            for (const [key, value] of Object.entries(cvData.personal)) {
+                const el = document.getElementById(`input-${key}`);
+                if (el) el.value = value;
+            }
+
+            // Experience List
+            const expList = document.getElementById('experience-list');
+            expList.innerHTML = cvData.experience.map(exp => `
+                <div class="relative p-4 bg-gray-50 rounded-xl border border-gray-200 group hover:shadow-sm">
+                    <button onclick="deleteExperience(${exp.id})" class="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    <div class="space-y-3">
+                        <input type="text" placeholder="${t.phCompany}" value="${exp.company}" oninput="updateArrayItem('experience', ${exp.id}, 'company', this.value)" class="w-full p-2 border rounded text-sm">
+                        <input type="text" placeholder="${t.phJob}" value="${exp.title}" oninput="updateArrayItem('experience', ${exp.id}, 'title', this.value)" class="w-full p-2 border rounded text-sm">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="month" value="${exp.startDate}" oninput="updateArrayItem('experience', ${exp.id}, 'startDate', this.value)" class="w-full p-2 border rounded text-sm">
+                            <input type="text" placeholder="End Date (Present)" value="${exp.endDate}" oninput="updateArrayItem('experience', ${exp.id}, 'endDate', this.value)" class="w-full p-2 border rounded text-sm">
+                        </div>
+                        <input type="text" placeholder="${t.phLocation}" value="${exp.location}" oninput="updateArrayItem('experience', ${exp.id}, 'location', this.value)" class="w-full p-2 border rounded text-sm">
+                        <textarea placeholder="${t.phDesc}" oninput="updateArrayItem('experience', ${exp.id}, 'description', this.value)" class="w-full p-2 border rounded text-sm min-h-[60px]">${exp.description}</textarea>
+                    </div>
+                </div>
+            `).join('');
+
+            // Education List
+            const eduList = document.getElementById('education-list');
+            eduList.innerHTML = cvData.education.map(edu => `
+                <div class="relative p-4 bg-gray-50 rounded-xl border border-gray-200 group hover:shadow-sm">
+                    <button onclick="deleteEducation(${edu.id})" class="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    <div class="space-y-3">
+                        <input type="text" placeholder="${t.phSchool}" value="${edu.school}" oninput="updateArrayItem('education', ${edu.id}, 'school', this.value)" class="w-full p-2 border rounded text-sm">
+                        <input type="text" placeholder="${t.phDegree}" value="${edu.degree}" oninput="updateArrayItem('education', ${edu.id}, 'degree', this.value)" class="w-full p-2 border rounded text-sm">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="month" value="${edu.startDate}" oninput="updateArrayItem('education', ${edu.id}, 'startDate', this.value)" class="w-full p-2 border rounded text-sm">
+                            <input type="month" value="${edu.endDate}" oninput="updateArrayItem('education', ${edu.id}, 'endDate', this.value)" class="w-full p-2 border rounded text-sm">
+                        </div>
+                        <input type="text" placeholder="${t.phLocation}" value="${edu.location}" oninput="updateArrayItem('education', ${edu.id}, 'location', this.value)" class="w-full p-2 border rounded text-sm">
+                        <textarea placeholder="${t.phDesc}" oninput="updateArrayItem('education', ${edu.id}, 'description', this.value)" class="w-full p-2 border rounded text-sm min-h-[60px]">${edu.description}</textarea>
+                    </div>
+                </div>
+            `).join('');
+
+            // Skills List
+            const skillsList = document.getElementById('skills-list');
+            skillsList.innerHTML = cvData.skills.map((skill, idx) => `
+                <div class="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-1 pr-2">
+                    <input value="${skill}" placeholder="${t.phSkill}" oninput="updateSkill(${idx}, this.value)" class="bg-transparent text-sm w-32 px-2 py-1 outline-none">
+                    <button onclick="deleteSkill(${idx})" class="text-gray-400 hover:text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                </div>
+            `).join('');
+
+            lucide.createIcons(); // Refresh icons
+        }
+
+        function renderPreview() {
+            const t = translations[currentLang];
+
+            // Personal
+            document.getElementById('view-fullName').innerText = cvData.personal.fullName || (currentLang === 'gu' ? "નામ" : (currentLang === 'hi' ? "नाम" : "Your Name"));
+            document.getElementById('view-jobTitle').innerText = cvData.personal.jobTitle || (currentLang === 'gu' ? "હોદ્દો" : (currentLang === 'hi' ? "शीर्षक" : "Job Title"));
+            document.getElementById('view-summary').innerText = cvData.personal.summary || "";
+            
+            // Contact Bar
+            const contactEl = document.getElementById('view-contact');
+            let contactHtml = '';
+            if(cvData.personal.email) contactHtml += `<div class="flex items-center gap-2"><i data-lucide="mail" class="w-3 h-3"></i><span>${cvData.personal.email}</span></div>`;
+            if(cvData.personal.phone) contactHtml += `<div class="flex items-center gap-2"><i data-lucide="phone" class="w-3 h-3"></i><span>${cvData.personal.phone}</span></div>`;
+            if(cvData.personal.location) contactHtml += `<div class="flex items-center gap-2"><i data-lucide="map-pin" class="w-3 h-3"></i><span>${cvData.personal.location}</span></div>`;
+            if(cvData.personal.website) contactHtml += `<div class="flex items-center gap-2"><i data-lucide="globe" class="w-3 h-3"></i><span>${cvData.personal.website}</span></div>`;
+            contactEl.innerHTML = contactHtml;
+
+            // Experience
+            const expSection = document.getElementById('view-experience-section');
+            const expList = document.getElementById('view-experience-list');
+            
+            // Translate Header
+            document.querySelector('#view-experience-section h3').innerText = t.experience;
+
+            if (cvData.experience.length > 0) {
+                expSection.classList.remove('hidden');
+                expList.innerHTML = cvData.experience.map(exp => `
+                    <div>
+                        <div class="flex justify-between items-baseline mb-1">
+                            <h4 class="font-bold text-gray-900 text-lg">${exp.title}</h4>
+                            <span class="text-sm text-gray-500 font-medium">${exp.startDate} — ${exp.endDate || (currentLang === 'en' ? 'Present' : (currentLang === 'gu' ? 'હાલમાં' : 'वर्तमान'))}</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="company-name text-md font-semibold">${exp.company}</span>
+                            <span class="text-xs text-gray-400 italic">${exp.location}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 leading-relaxed whitespace-pre-line text-justify">${exp.description}</p>
+                    </div>
+                `).join('');
+            } else {
+                expSection.classList.add('hidden');
+            }
+
+            // Education
+            const eduSection = document.getElementById('view-education-section');
+            const eduList = document.getElementById('view-education-list');
+
+            // Translate Header
+            document.querySelector('#view-education-section h3').innerText = t.education;
+
+            if (cvData.education.length > 0) {
+                eduSection.classList.remove('hidden');
+                eduList.innerHTML = cvData.education.map(edu => `
+                    <div>
+                        <div class="flex justify-between items-baseline mb-1">
+                            <h4 class="font-bold text-gray-900 text-lg">${edu.school}</h4>
+                            <span class="text-sm text-gray-500 font-medium">${edu.startDate} — ${edu.endDate || (currentLang === 'en' ? 'Present' : (currentLang === 'gu' ? 'હાલમાં' : 'वर्तमान'))}</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="degree-name text-md">${edu.degree}</span>
+                            <span class="text-xs text-gray-400 italic">${edu.location}</span>
+                        </div>
+                        <p class="text-sm text-gray-500 leading-relaxed mt-1">${edu.description}</p>
+                    </div>
+                `).join('');
+            } else {
+                eduSection.classList.add('hidden');
+            }
+
+            // Skills
+            const skillSection = document.getElementById('view-skills-section');
+            const skillList = document.getElementById('view-skills-list');
+            
+            // Translate Header
+            document.querySelector('#view-skills-section h3').innerText = t.skills;
+
+            if (cvData.skills.length > 0 && cvData.skills.some(s => s.trim() !== "")) {
+                skillSection.classList.remove('hidden');
+                skillList.innerHTML = cvData.skills.filter(s => s.trim() !== "").map(skill => `
+                    <span class="px-3 py-1.5 bg-white border border-gray-200 rounded text-sm font-medium text-gray-700 shadow-sm">${skill}</span>
+                `).join('');
+            } else {
+                skillSection.classList.add('hidden');
+            }
+
+            lucide.createIcons();
+            updateColor(document.getElementById('colorPicker').value);
+        }
+    </script>
+</body>
+</html>
+
